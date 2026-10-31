@@ -15,11 +15,14 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential clang lld flex bison automake autoconf m4
+          sudo apt-get install -y build-essential clang lld flex bison automake autoconf m4 fakeroot
 
-      - name: Install theos with iPhoneOS16.5 SDK
+      - name: Install theos (with Linux toolchain)
         run: |
-          git clone --recursive https://github.com/theos/theos.git "$THEOS"
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+
+      - name: Add iPhoneOS16.5 SDK
+        run: |
           git clone --depth 1 --filter=blob:none --sparse https://github.com/theos/sdks.git "$THEOS/sdks-tmp"
           cd "$THEOS/sdks-tmp"
           git sparse-checkout set iPhoneOS16.5.sdk
