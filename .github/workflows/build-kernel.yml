@@ -1,0 +1,52 @@
+name: build-kernel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      THEOS: /home/runner/theos
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang lld flex bison automake autoconf m4
+
+      - name: Install theos with iPhoneOS16.5 SDK
+        run: |
+          git clone --recursive https://github.com/theos/theos.git "$THEOS"
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/theos/sdks.git "$THEOS/sdks-tmp"
+          cd "$THEOS/sdks-tmp"
+          git sparse-checkout set iPhoneOS16.5.sdk
+          mv iPhoneOS16.5.sdk "$THEOS/sdks/"
+          cd "$THEOS" && rm -rf sdks-tmp
+
+      - name: Sync device repositories
+        run: python3 tools/hakios-device.py sync
+
+      - name: Configure kernel (redwood baseline)
+        run: make redwood_defconfig
+
+      - name: Build kernel
+        run: make kernel JOBS=4
+
+      - name: Build placeholder loader
+        run: make loader-open
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p out
+          cp -v hakios-kernel out/ || true
+          cp -v xnuloader/loader.efi out/loader-open.efi || true
+          ls -la out/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hakios-build-redwood
+          path: out/
+          retention-days: 7
