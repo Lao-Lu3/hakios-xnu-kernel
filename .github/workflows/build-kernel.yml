@@ -2,6 +2,9 @@ name: build-kernel
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/**']
 
 jobs:
   build:
@@ -39,7 +42,11 @@ jobs:
         run: make redwood_defconfig
 
       - name: Build kernel
-        run: make kernel JOBS=4
+        run: |
+          [ -d xnu-src/xnu-8796.121.2 ] || xnu/apply.sh
+          [ -e xnu-deps/host/bin/ld64 ] || xnu-deps/setup.sh
+          # BUILD_DSYM=0: Linux 没有 Apple dsymutil，跳过调试符号包（内核二进制不受影响）
+          tools/make-kernel.sh -j4 BUILD_DSYM=0
 
       - name: Dump build logs on failure
         if: failure()
