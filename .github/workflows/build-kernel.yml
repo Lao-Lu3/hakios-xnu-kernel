@@ -41,6 +41,14 @@ jobs:
       - name: Build kernel
         run: make kernel JOBS=4
 
+      - name: Dump build logs on failure
+        if: failure()
+        run: |
+          for f in xnu-deps/*.log; do
+            [ -e "$f" ] && echo "=== $f (tail 60) ===" && tail -60 "$f"
+          done
+          exit 1
+
       - name: Build placeholder loader
         run: make loader-open
 
